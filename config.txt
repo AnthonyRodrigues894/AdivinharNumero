@@ -1,0 +1,40 @@
+git config --global user.name AnthonyRodrigues894
+git config --global user.email anthonyserrano894@gmail.com
+
+criar um projeto: npx create-expo-app@latest ( nome projeto) --template blank
+abrir o terminal - ctrl + '
+
+cd ConversorMoedas 
+
+criar um projeto react native com expo:
+npx expo start --localhost --android
+
+cd ConversorMoedas
+
+Extenção Pesquisa React -> ES7+ react/redux/react
+
+atualizar os pacotes do node
+npm i
+
+
+
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, Text, View } from 'react-native';
+
+export default function App() {
+  return (
+    <View style={styles.container}>
+      <Text>Open up App.js to start working on your app!</Text>
+      <StatusBar style="auto" />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
