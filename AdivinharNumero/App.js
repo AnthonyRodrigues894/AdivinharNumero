@@ -1,174 +1,299 @@
-import { useState } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, SafeAreaView, TextInput, TouchableOpacity, Keyboard } from 'react-native';
-import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  Keyboard,
+  Dimensions,
+} from 'react-native';
+
+const screenWidth = Dimensions.get('window').width;
 
 export default function App() {
-  const [bitcoin, setBitcoin] = useState(null);
-  const [dolar, setDolar] = useState(null);
-  const [textButton, setTextButton] = useState("Converter");
-  const [message, setMessage] = useState("Digite o valor em Bitcoin");
-  // Taxa de câmbio atualizada (1 BTC = 81,212 USD em junho/2024) FEITO PELO DEEPSEEK
-  const [exchangeRate, setExchangeRate] = useState(81212); 
+  const MAX_TENTATIVAS = 5;
 
-  function formatCurrency(value) {
-    return value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const [numeroSecreto, setNumeroSecreto] = useState(gerarNumero());
+  const [palpite, setPalpite] = useState('');
+  const [mensagem, setMensagem] = useState('');
+  const [tentativas, setTentativas] = useState(0);
+  const [jogoFinalizado, setJogoFinalizado] = useState(false);
+
+  function gerarNumero() {
+    return Math.floor(Math.random() * 100) + 1;
   }
 
-  function convertToDolar() {
-    if (!bitcoin) return;
-    const dolarValue = bitcoin * exchangeRate;
-    setDolar(formatCurrency(dolarValue));
-  }
-
-  function validateConversion() {
-    if (bitcoin != null) {
-      Keyboard.dismiss();
-      convertToDolar();
-      setBitcoin(null);
-      setTextButton("Conversão");
-      setMessage("Valor Convertido US$:");
+  const verificarPalpite = () => {
+    const numero = parseInt(palpite);
+    if (isNaN(numero)) {
+      setMensagem('ERRO: Insira dados numéricos');
       return;
     }
-    setDolar(null);
-    setTextButton("Converter");
-    setMessage("Digite o valor em Bitcoin");
-  }
+
+    Keyboard.dismiss();
+    const novasTentativas = tentativas + 1;
+    setTentativas(novasTentativas);
+
+    if (numero === numeroSecreto) {
+      setMensagem(`ACESSO CONCEDIDO! Código ${numeroSecreto} confirmado`);
+      setJogoFinalizado(true);
+    } else if (novasTentativas >= MAX_TENTATIVAS) {
+      setMensagem(`SISTEMA BLOQUEADO! Código correto: ${numeroSecreto}`);
+      setJogoFinalizado(true);
+    } else if (numero < numeroSecreto) {
+      setMensagem('NÍVEL DE ACESSO INSUFICIENTE');
+    } else {
+      setMensagem('NÍVEL DE ACESSO EXCEDIDO');
+    }
+
+    setPalpite('');
+  };
+
+  const reiniciarJogo = () => {
+    setNumeroSecreto(gerarNumero());
+    setPalpite('');
+    setMensagem('');
+    setTentativas(0);
+    setJogoFinalizado(false);
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.titleBox}>
-        <Text style={styles.titleText}>Conversor Bitcoin  Dólar</Text>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.titulo}>GALLO GUESS</Text>
+        <View style={styles.terminalLine} />
       </View>
-    
-      <View style={styles.content}> 
-        <Text style={styles.subTitle}>Cotação Atual: 1 BTC = ${formatCurrency(exchangeRate)}</Text>
 
-        <View>
-          <Text style={styles.label}>Quantidade de Bitcoin (BTC)</Text>
-          <TextInput
-            style={styles.input}
-            onChangeText={setBitcoin}
-            value={bitcoin ?? ''}
-            placeholder='Ex: 0.5'
-            keyboardType='numeric'
-          />
-        </View>
+      <Text style={styles.subtitulo}>
+        DECIFRE O CÓDIGO (1-100)
+      </Text>
 
-        <View style={{ marginTop: 25 }}>
-          <Text style={styles.label}>Alterar Taxa (1 BTC = USD)</Text>
-          <TextInput
-            style={styles.input}
-            onChangeText={(text) => setExchangeRate(parseFloat(text) || 81212)}
-            value={String(exchangeRate)}
-            placeholder='Ex: 81212'
-            keyboardType='numeric'
-          />
-        </View>
+      <View style={styles.terminalBox}>
+        <Text style={styles.tentativas}>
+          TENTATIVAS: {MAX_TENTATIVAS - tentativas}/{MAX_TENTATIVAS}
+        </Text>
+      </View>
 
-        <TouchableOpacity 
-          style={styles.button}
-          onPress={validateConversion}
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          keyboardType="numeric"
+          placeholder="INSIRA O CÓDIGO..."
+          placeholderTextColor="#00ff9d"
+          value={palpite}
+          onChangeText={setPalpite}
+          editable={!jogoFinalizado}
+        />
+        <View style={styles.inputGlow} />
+      </View>
+
+      <View style={styles.botoes}>
+        <Pressable
+          style={[styles.botao, jogoFinalizado && styles.botaoDesativado]}
+          onPress={verificarPalpite}
+          disabled={jogoFinalizado}
         >
-          <Ionicons name="cash-outline" size={24} color='#000000'/>
-          <Text style={styles.text}>{textButton}</Text>
-        </TouchableOpacity>
+          <Text style={styles.botaoTexto}>VERIFICAR</Text>
+          <View style={styles.botaoGlow} />
+        </Pressable>
 
-        <View style={styles.resultContainer}>
-          <Text style={styles.resultText}>{message}</Text>
-          {dolar && <Text style={styles.resultValue}>${dolar}</Text>}
-        </View>
-
+        <Pressable 
+          style={styles.botaoReiniciar} 
+          onPress={reiniciarJogo}
+        >
+          <Text style={styles.botaoTexto}>REINICIAR</Text>
+          <View style={styles.botaoGlow} />
+        </Pressable>
       </View>
 
-      <StatusBar style="light" />
-    </SafeAreaView>
+      <Text
+        style={[
+          styles.resultado,
+          numeroSecreto === parseInt(palpite) && styles.resultadoSucesso,
+          tentativas >= MAX_TENTATIVAS && styles.resultadoErro
+        ]}
+      >
+        {mensagem || "AGUARDANDO INPUT..."}
+      </Text>
+
+      <View style={styles.footer}>
+        <View style={styles.scanLine} />
+        <Text style={styles.footerText}>SISTEMA DE SEGURANÇA v2.4.7</Text>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#edf2f4',
-  },
-  titleBox: {
+    backgroundColor: '#0a0a12',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    height: 120,
-    backgroundColor: '#FF9500',
-    borderBottomStartRadius: 25,
-    borderBottomEndRadius: 25,
+    justifyContent: 'center',
+    padding: 20,
   },
-  titleText: {
-    color: '#000000',
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  content: {
-    flex: 1,
-    padding: 30,
-    width: '100%',
-    backgroundColor: '#edf2f4',
-  },
-  subTitle: {
-    textAlign: 'center',
-    fontSize: 18,
-    color: '#000000',
-    fontWeight: '600',
+  header: {
     marginBottom: 30,
-    color: '#555',
-  }, 
-  label: {
-    color: '#000000',
+    alignItems: 'center',
+  },
+  titulo: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#00ff9d',
+    letterSpacing: 5,
+    marginBottom: 8,
+    textShadowColor: '#00ff9d',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
+  terminalLine: {
+    height: 2,
+    width: screenWidth * 0.7,
+    backgroundColor: '#00ff9d',
+    shadowColor: '#00ff9d',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 5,
+  },
+  subtitulo: {
     fontSize: 16,
-    marginBottom: 5,
+    color: '#00b4ff',
+    marginBottom: 30,
+    letterSpacing: 1,
+    fontWeight: 'bold',
+  },
+  terminalBox: {
+    borderWidth: 1,
+    borderColor: '#00ff9d',
+    padding: 15,
+    marginBottom: 30,
+    backgroundColor: 'rgba(0, 255, 157, 0.05)',
+  },
+  tentativas: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#00ff9d',
+    letterSpacing: 1,
+  },
+  inputContainer: {
+    position: 'relative',
+    marginBottom: 30,
+    width: screenWidth * 0.8,
   },
   input: {
-    height: 50,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    color: '#00ff9d',
+    borderWidth: 1,
+    borderColor: '#00ff9d',
+    borderRadius: 0,
+    padding: 15,
     width: '100%',
-    fontSize: 16,
-    borderColor: '#FF9500',
-    borderWidth: 2,
-    marginVertical: 5, 
-    borderRadius: 30,
-    paddingHorizontal: 20,
-    backgroundColor: '#fff',
+    fontSize: 18,
+    textAlign: 'center',
+    letterSpacing: 1,
+    fontFamily: 'monospace',
   },
-  button: {
-    width: '100%',
-    paddingVertical: 15,
+  inputGlow: {
+    position: 'absolute',
+    bottom: -5,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: '#00ff9d',
+    shadowColor: '#00ff9d',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 5,
+    zIndex: -1,
+  },
+  botoes: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FF9500',
-    borderRadius: 15,
-    marginTop: 30,
-    marginBottom: 20,
-    elevation: 3,
-  },
-  text: {
-    color: '#000000',
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginLeft: 10
-  },
-  resultContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  resultText: {
-    fontSize: 20,
-    color: '#000000',
-    fontWeight: '600',
-    marginBottom: 5,
-  },
-  resultValue: {
-    fontSize: 42,
-    color: '#FF9500',
-    fontWeight: 'bold',
+    gap: 15,
     marginTop: 10,
-  }
+    marginBottom: 30,
+  },
+  botao: {
+    backgroundColor: 'transparent',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderWidth: 1,
+    borderColor: '#00b4ff',
+    borderRadius: 0,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  botaoReiniciar: {
+    backgroundColor: 'transparent',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderWidth: 1,
+    borderColor: '#ff006a',
+    borderRadius: 0,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  botaoDesativado: {
+    borderColor: '#555',
+  },
+  botaoTexto: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+    letterSpacing: 1,
+    position: 'relative',
+    zIndex: 1,
+  },
+  botaoGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 180, 255, 0.2)',
+  },
+  resultado: {
+    marginTop: 20,
+    fontSize: 16,
+    color: '#00b4ff',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    paddingHorizontal: 20,
+    lineHeight: 24,
+    letterSpacing: 0.5,
+    fontFamily: 'monospace',
+    minHeight: 50,
+    textShadowColor: 'rgba(0, 180, 255, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 5,
+  },
+  resultadoSucesso: {
+    color: '#00ff9d',
+    textShadowColor: 'rgba(0, 255, 157, 0.5)',
+  },
+  resultadoErro: {
+    color: '#ff006a',
+    textShadowColor: 'rgba(255, 0, 106, 0.5)',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 20,
+    alignItems: 'center',
+  },
+  scanLine: {
+    height: 1,
+    width: screenWidth * 0.6,
+    backgroundColor: '#00ff9d',
+    marginBottom: 10,
+    shadowColor: '#00ff9d',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 5,
+  },
+  footerText: {
+    fontSize: 10,
+    color: 'rgba(0, 180, 255, 0.7)',
+    letterSpacing: 1,
+  },
 });
